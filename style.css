@@ -56,5 +56,14 @@ body,html {
   animation-iteration-count: infinite;
 } 
 
-
+#simpleViz { 
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 20vw;
+  
+  z-index: 10;
+  /* background-color: rgba(0 , 0, 0, 0.5); */
+  transform: scaleY(-1);
+}
 
