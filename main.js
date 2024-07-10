@@ -183,8 +183,8 @@ async function initializeVisualizer(){
     worldEnv.camera.rotation.z += 0.01
     worldEnv.camera.rotation.y += 0.01
   }
-  let t = 0;
-
+  let t = 65; //"tube" time
+  let ct = 0; //"color" time
 
   function animate(){
     //render frame
@@ -194,13 +194,14 @@ async function initializeVisualizer(){
     //get current audio data
     audioEnv.analyser.getByteFrequencyData(audioEnv.byteFrequencyData);
     audioEnv.analyser.getByteTimeDomainData(audioEnv.timeDomainData);
-    const {adjustedAverage} = audioEnv.getAverageLoudness();
+    const {average, adjustedAverage} = audioEnv.getAverageLoudness();
     worldEnv.bloomPass.strength = (adjustedAverage/255) * 150    
-    console.log('bloom strength:',worldEnv.bloomPass.strength);
 
-    worldEnv.renderer.domElement.style.filter = `hue-rotate(${t/(HUE_ROTATE_AMOUNT)}deg)`
+    worldEnv.renderer.domElement.style.filter = `hue-rotate(${(ct+average)/(HUE_ROTATE_AMOUNT)}deg)`
     t++;
-
+    ct++
+    if(t > 1000 ) t  = 140
+  
     setTimeout(()=>{
       requestAnimationFrame(animate)
     },17) //~60fps
