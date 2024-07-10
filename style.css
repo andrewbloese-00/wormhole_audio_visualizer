@@ -1,0 +1,60 @@
+@keyframes font_color_rotate { 
+  0% {
+    color: yellow;
+    border-color: yellow;
+  }
+  20% {
+    color: aquamarine;
+    border-color: aquamarine;
+  }
+  40% {
+    color: royalblue;
+    border-color: royalblue;
+  }
+  60% {
+    color: violet;
+    border-color: violet;
+  }
+  80% {
+    color: orange;
+    border-color: orange
+  }
+  100% {
+    color: red;
+    border-color: red;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body,html {
+  background-color: #000;
+}
+
+#start { 
+  padding: 10px 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  color: #333;
+  border-radius: 10px;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  font-size: 24px;
+}
+
+#start:hover {
+  transition: all 0.3s linear;
+  animation-name: font_color_rotate;
+  animation-duration: 2s;
+  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
+} 
+
+
+
