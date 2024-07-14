@@ -56,14 +56,35 @@ body,html {
   animation-iteration-count: infinite;
 } 
 
-#simpleViz { 
+#simpleViz1 { 
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20vw;
+  z-index: 10;
+  scale: -1;
+}
+#simpleViz2 { 
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20vw;
+  z-index: 10;
+}
+#simpleViz3 { 
   position: absolute;
   bottom: 0;
   left: 0;
   width: 20vw;
-  
   z-index: 10;
-  /* background-color: rgba(0 , 0, 0, 0.5); */
   transform: scaleY(-1);
+}
+#simpleViz4 { 
+  position: absolute;
+  top:0;
+  right: 0;
+  width: 20vw;
+  z-index: 10;
+  transform: scaleX(-1);
 }
 

@@ -11,6 +11,7 @@ const RADIAL_SEGMENTS = 16;
 const LOOP_TIME = 5_000;
 const HUE_ROTATE_AMOUNT = 1;
 const FFT_SIZE = 2048;
+const SIMPLE_BINS = 16;
 
 async function getMicrophone(){
   try {
@@ -27,6 +28,14 @@ async function getMicrophone(){
 
 
 
+/**
+ * 
+ * @param {number} path_radius 
+ * @param {number} path_segments 
+ * @param {number} tube_radius 
+ * @param {number} tube_segments 
+ * @returns the mesh and geometry of the generated circular tube
+ */
 function getCircleTube(path_radius=100,path_segments=500, tube_radius=TUBE_RADIUS, tube_segments=TUBE_SEGMENTS){
   const points = [];
   for(let i = 0; i < path_segments; i++){
@@ -48,6 +57,12 @@ function getCircleTube(path_radius=100,path_segments=500, tube_radius=TUBE_RADIU
   }
 }
 
+
+/**
+ * @about gets a threejs "environment" with a render and bloom pass (post-processing)
+ * @param {number} fogDensity fog modifier
+ * @returns all the threejs environment objects
+ */
 function getVisualEnvironment(fogDensity=0.3){
     //create renderer and attach to document
     const renderer = new WebGLRenderer()
@@ -55,22 +70,22 @@ function getVisualEnvironment(fogDensity=0.3){
     renderer.outputColorSpace = SRGBColorSpace
     document.body.appendChild(renderer.domElement)
     renderer.domElement.style.zIndex = "1"
+    
+    
+    //create scene - fog if specified
     const scene = new Scene()
-    //apply fog if params specified
     if(fogDensity > 0){
       scene.fog = new FogExp2(0x000000,0.3);
     }
 
-
     const camera = new PerspectiveCamera(105,window.innerWidth/window.innerHeight,0.1,1000);
-
+    
     //handle window resize events
     const setSize = ()=>{
         renderer.setSize(window.innerWidth,window.innerHeight)
         camera.aspect = window.innerWidth/window.innerHeight
         camera.updateProjectionMatrix()
-    }
-    
+    }    
     setSize()
     window.addEventListener("resize",setSize);
 
@@ -95,7 +110,9 @@ function getVisualEnvironment(fogDensity=0.3){
     return { renderer, scene , camera, composer, bloomPass}
 }
 
-
+/**
+ * A singleton that holds the audio state (context, analyser, streamSrc, etc)
+ */
 class AudioEnvironment {
   /**
    * @type {null|AudioEnvironment}
@@ -177,11 +194,6 @@ class AudioEnvironment {
 
 } 
 
-
-
-
-
-
 /**
  * 
  * @param {number} n 
@@ -216,60 +228,65 @@ function addStars(n,scene){
 }
 
 
-
+/**
+ * @about uses helpers to generate the visualizer scene, as well as animation function
+ * 
+ */
 async function initializeVisualizer(){
   const audioEnv = await AudioEnvironment.use()
-  if(!audioEnv) {
+  if(!audioEnv) 
     return console.error("failed to get audio environment... cannot start visualizer");
-  }
+  
 
   const worldEnv = getVisualEnvironment(0);
   const stars = addStars(audioEnv.analyser.frequencyBinCount,worldEnv.scene)
   const tube = getCircleTube(100,500);
   worldEnv.scene.add(tube.visual);
 
-  /**
-   * @type {null|HTMLCanvasElement}
-   */
-  const canvas2d = document.querySelector("canvas#simpleViz")
-  canvas2d.width = 400
-  canvas2d.height = 200
-  const ctx2d = canvas2d.getContext("2d");
+
+  const cornerCanvases = ['#simpleViz1', '#simpleViz2', '#simpleViz3','#simpleViz4'].map(sel => document.querySelector(sel))
+  const ctx2ds = cornerCanvases.map((canvas)=>{
+    canvas.width = 400
+    canvas.height = 200
+    return canvas.getContext("2d")
+  }) 
   
   
+  //base 'bar' colors
   const COLORS = [ 
     "#ff00ff",
-    "#ff10ff",
-    "#ff20ff",
-    "#ff30ff",
-    "#ff40ff",
-    "#ff50ff",
-    "#ff60ff",
-    "#ff70ff",
-    "#ff80ff",
-    "#ff90ff",
-
-    
+    "#ff01ff",
+    "#ff02ff",
+    "#ff03ff",
+    "#ff04ff",
+    "#ff05ff",
+    "#ff06ff",
+    "#ff07ff",
+    "#ff08ff",
+    "#ff09ff",
+    "#ff0aff",
+    "#ff0bff",
+    "#ff0cff",
+    "#ff0dff",
+    "#ff0eff",
+    "#ff0fff",
   ]
 
-
+  //helper - draws bar visualizer in each corner 
   function drawBars(simple){
-    let c = 0; 
-    ctx2d.fillStyle = "#ffffff"
-    ctx2d.strokeStyle = "#ffffff"
-    const barWidth = 400/simple.length
-    for(let b = 0; b < simple.length; b++){
-      const x = b*barWidth
-      const height = (simple[b] * 250 )
-      ctx2d.fillStyle=COLORS[b]
-      ctx2d.fillRect(x,0,barWidth,height)
-
+    for(const ctx2d of ctx2ds){
+      ctx2d.clearRect(0,0,ctx2d.canvas.width, ctx2d.canvas.height)
+      ctx2d.fillStyle = "#ffffff"
+      ctx2d.strokeStyle = "#ffffff"
+      const barWidth = 400/simple.length
+      for(let b = 0; b < simple.length; b++){
+        const x = b*barWidth
+        const height = (simple[b] * 255 )
+        ctx2d.fillStyle=COLORS[b]
+        ctx2d.fillRect(x,0,barWidth,height)
+      }
     }
   }
-
-
-
-  
 
   function updateCamera(t){
     const time = t * 0.5;
@@ -279,13 +296,11 @@ async function initializeVisualizer(){
     const nextPos = tube.geometry.parameters.path.getPointAt(next);
     worldEnv.camera.position.copy(pos);
     worldEnv.camera.lookAt(nextPos);
-    worldEnv.camera.rotation.z += 0.01
-    worldEnv.camera.rotation.z += 0.01
-    worldEnv.camera.rotation.y += 0.01
   }
-  let t = 65; //"tube" time
-  let ct = 0; //"color" time
-  const simple = Array(10).fill(0)
+
+  let t = 65; //"tube" tick
+  let ct = 0; //"color" tick
+  const simple = Array(SIMPLE_BINS).fill(0)
 
   function animate(){
     //render frame
@@ -296,32 +311,36 @@ async function initializeVisualizer(){
     audioEnv.analyser.getByteFrequencyData(audioEnv.byteFrequencyData);
     audioEnv.analyser.getByteTimeDomainData(audioEnv.timeDomainData);
     audioEnv.getSimplifiedValues(simple)
-    
-    
-    
 
+    //analyze data
     const {adjustedAverage, trebAvg, bassAvg} = audioEnv.getAverageLoudness();
+    
+  
+    //unreal bloom dependent on the overall loudness
     worldEnv.bloomPass.strength = (adjustedAverage/255) * 150    
 
-    const scaleAmount =  0.2*Math.sin((bassAvg +ct)/1000)
-    const s = 1 + scaleAmount
-    tube.visual.scale.set(1,1,s);
+    //tube z scales slightly based on colortick and bass volume of current frame (uses bottom half of fft data)
+    const scaleAmount =  1+(0.2*Math.sin((bassAvg +ct)/1000))
+    tube.visual.scale.set(1,1,scaleAmount);
 
-
+    //rotate hues based on colortick and 'treble' volume (uses upper half of fft data)
     worldEnv.renderer.domElement.style.filter = `hue-rotate(${(ct+trebAvg)/(HUE_ROTATE_AMOUNT)}deg)`
-    canvas2d.style.filter = `hue-rotate(${(ct+trebAvg)/(HUE_ROTATE_AMOUNT)}deg) contrast(${Math.min(Math.abs(bassAvg-trebAvg),5)}) blur(15px)`
+    for(const canvas2d of cornerCanvases)
+      canvas2d.style.filter = `hue-rotate(${(ct+trebAvg)/(HUE_ROTATE_AMOUNT)}deg) contrast(${Math.min(Math.abs(bassAvg-trebAvg),5)}) blur(15px)`
+    
+    //increment tick
     t++;
     ct++
+
+    //give illusion of infinite loop
     if(t > 1000 ) t  = 144
 
+    //NOTE: decrease # of stars if encountering lag. Runs fine as is on M1 Macbook Pro [Sonoma 14.5] 
     for(const star of stars){
       star.scale.set(trebAvg/255,(trebAvg+bassAvg)/2/255,trebAvg/255)
     }
-    
-    ctx2d.clearRect(0,0,400,200) 
+    //use simplified analysis to draw corner graphs
     drawBars(simple);
-
-
     setTimeout(()=>{
       requestAnimationFrame(animate)
     },17) //~60fps
@@ -332,13 +351,15 @@ async function initializeVisualizer(){
 }
 
 
+/**
+ * @about where the magic happens... start the visualizer on button click
+ */
 function main(){
   const startButton = document.querySelector("#start")
   startButton.addEventListener("click",async ()=>{
     const visualizer = await initializeVisualizer();
     startButton.style.display = "none"
     visualizer.animate()
-
   })
 }
 
